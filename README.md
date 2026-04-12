@@ -32,6 +32,108 @@ oil_tank_project/
     └── confusion_matrix.png     # Error analysis
 ```
 
+## Implementation Pipeline
+
+### 1. Environment Setup
+Installed required libraries:
+- NumPy, Pandas → data handling  
+- OpenCV → image processing  
+- Ultralytics YOLOv8 → object detection  
+
+---
+
+### 2. Dataset Loading
+Used Airbus Oil Storage Detection dataset from Kaggle:
+[Airbus Oil Storage Detection Dataset](https://www.kaggle.com/datasets/airbusgeo/airbus-oil-storage-detection-dataset)
+
+---
+
+### 3. Annotation Parsing
+Bounding boxes were provided in `(x_min, y_min, x_max, y_max)` format and converted into numerical values.
+
+---
+
+### 4. YOLO Format Conversion
+Converted annotations into YOLO format:
+`(class_id, x_center, y_center, width, height)`
+
+All values normalized with respect to image dimensions.
+
+---
+
+### 5. Dataset Organization
+Created directory structure: 
+```text
+data/
+├── images/train
+├── images/val
+├── labels/train
+├── labels/val
+```
+
+---
+
+### 6. Tiling Strategy
+Implemented tiling to handle large images:
+- Tile size: 640×640  
+- Overlap to avoid object truncation  
+- Removed empty tiles  
+
+---
+
+### 7. Tile Generation
+Generated tiles and adjusted bounding boxes relative to each tile.
+
+---
+
+### 8. Dataset Configuration
+Created YOLO config file:
+
+```yaml
+path: tiled
+train: images/train
+val: images/val
+
+names:
+  0: oil_tank
+```
+
+---
+
+### 9. Model Training
+Trained YOLOv8 model using transfer learning:
+
+```python
+model.train(
+    data="tiled_dataset.yaml",
+    epochs=100,
+    imgsz=640,
+    batch=16,
+    degrees=90,
+    flipud=0.5,
+    fliplr=0.5
+)
+```
+
+---
+
+### 10. Evaluation
+Evaluated using:
+- mAP@50
+- mAP@50-95
+- Precision & Recall
+
+---
+
+### 11. Key Observations
+- Tiling significantly improved small object detection.
+- Dense regions caused overlapping predictions.
+- Adjusted confidence and NMS to improve results.
+
+---
+
+
+
 ## Model Performance
 
 The model achieved high precision and recall, demonstrating robust detection capabilities across the validation set.
