@@ -1,4 +1,4 @@
-# Satellite Oil Storage Tank Detection
+# Oil Storage Tank Detection
 
 A professional machine learning pipeline for detecting oil storage tanks in high-resolution satellite imagery using YOLOv8. This project implements a full end-to-end workflow including data preprocessing, intelligent tiling, model training, and performance evaluation.
 
