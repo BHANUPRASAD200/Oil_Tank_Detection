@@ -83,6 +83,10 @@ results = model.predict(
 | **Detection Quality** | Poor detection of small tanks | Improved recall and detection accuracy |
 | **Reliability** | High false negatives | Better performance in dense regions |
 
+![Comparison of Tiling Strategy](compare.png)
+*Figure 4: Tiling impact comparison — Left: Original high-resolution image; Right: After tiling and labeling.*
+
+
 > [!IMPORTANT]
 > **Key Insight**: Satellite imagery presents a small object detection challenge due to high resolution and large spatial coverage. 
 > 
