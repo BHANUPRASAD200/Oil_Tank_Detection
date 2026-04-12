@@ -123,10 +123,8 @@ This project also draws inspiration from the Image Tile Selector & BBox Annotato
 
 🔗 https://github.com/SkyServe-AI/tile-bbox-exporter
 
-I explored and leveraged key ideas from their tile selection workflow, particularly:
+I studied their approach and adapted the tiling concept into my pipeline, particularly:
 
-- Interactive tile generation and selection
 - Efficient handling of large satellite imagery
 - Structured tiling strategies for downstream ML tasks
 
-The tool’s modular design and tile management concepts helped inform the tiling approach used in this project.
