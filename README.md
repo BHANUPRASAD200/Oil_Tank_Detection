@@ -117,7 +117,7 @@ This project demonstrates a production-ready approach to solving small object de
 - **Multi-Spectral Data**: Incorporate Near-Infrared (NIR) bands if available, as oil tanks often have distinct thermal/reflective signatures.
 - **Temporal Analysis**: Apply the model across time-series data to track volume changes or industrial activity levels.
 
-## 🙏 Acknowledgment
+## Acknowledgment
 
 This project also draws inspiration from the Image Tile Selector & BBox Annotator tool developed by the SkyServe AI team.
 
