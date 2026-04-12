@@ -54,6 +54,48 @@ The model achieved high precision and recall, demonstrating robust detection cap
 ![PR Curve](runs/detect/train/BoxPR_curve.png)
 *Figure 3: Precision-Recall Curve demonstrating the trade-off at various thresholds.*
 
+## 🚀 Inference (How to Use the Model)
+
+```python
+from ultralytics import YOLO
+
+# Load trained model
+model = YOLO("runs/detect/train/weights/best.pt")
+
+# Run inference
+results = model.predict(
+    source="path_to_image_or_folder",
+    conf=0.6,
+    iou=0.3,
+    save=True
+)
+```
+
+**Output**:
+- Bounding boxes with confidence scores.
+- Saved results in `runs/detect/predict/`.
+
+## 🧩 Tiling Strategy Impact
+
+| Feature | ❌ Before Tiling | ✅ After Tiling |
+| :--- | :--- | :--- |
+| **Object Size** | Objects are extremely small | Objects become larger and clearer |
+| **Detection Quality** | Poor detection of small tanks | Improved recall and detection accuracy |
+| **Reliability** | High false negatives | Better performance in dense regions |
+
+> [!IMPORTANT]
+> **Key Insight**: Satellite imagery presents a small object detection challenge due to high resolution and large spatial coverage. 
+> 
+> **Solution**:
+> - Applied tiling (640×640 with overlap)
+> - Improved feature visibility
+> - Enabled robust detection of small objects
+
+### 🏁 Final Impact
+This project demonstrates a production-ready approach to solving small object detection in satellite imagery using tiling, transfer learning, and optimized inference strategies.
+
+
+
 ## 🧠 Assumptions & Challenges
 
 ### Assumptions
