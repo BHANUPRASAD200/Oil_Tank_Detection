@@ -116,3 +116,17 @@ This project demonstrates a production-ready approach to solving small object de
 - **Model Scaling**: Upgrade to YOLOv8m or YOLOv8l for higher feature extraction depth if computational budget allows.
 - **Multi-Spectral Data**: Incorporate Near-Infrared (NIR) bands if available, as oil tanks often have distinct thermal/reflective signatures.
 - **Temporal Analysis**: Apply the model across time-series data to track volume changes or industrial activity levels.
+
+## 🙏 Acknowledgment
+
+This project also draws inspiration from the Image Tile Selector & BBox Annotator tool developed by the SkyServe AI team.
+
+🔗 https://github.com/SkyServe-AI/tile-bbox-exporter
+
+I explored and leveraged key ideas from their tile selection workflow, particularly:
+
+- Interactive tile generation and selection
+- Efficient handling of large satellite imagery
+- Structured tiling strategies for downstream ML tasks
+
+The tool’s modular design and tile management concepts helped inform the tiling approach used in this project.
