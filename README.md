@@ -2,7 +2,7 @@
 
 A professional machine learning pipeline for detecting oil storage tanks in high-resolution satellite imagery using YOLOv8. This project implements a full end-to-end workflow including data preprocessing, intelligent tiling, model training, and performance evaluation.
 
-## 🚀 Workflow Overview
+## Workflow Overview
 
 The project follows a modular pipeline designed for high-resolution geospatial data:
 
@@ -32,7 +32,7 @@ oil_tank_project/
     └── confusion_matrix.png     # Error analysis
 ```
 
-## 📊 Model Performance
+## Model Performance
 
 The model achieved high precision and recall, demonstrating robust detection capabilities across the validation set.
 
@@ -54,7 +54,7 @@ The model achieved high precision and recall, demonstrating robust detection cap
 ![PR Curve](runs/detect/train/BoxPR_curve.png)
 *Figure 3: Precision-Recall Curve demonstrating the trade-off at various thresholds.*
 
-## 🚀 Inference (How to Use the Model)
+## Inference (How to Use the Model)
 
 ```python
 from ultralytics import YOLO
@@ -75,9 +75,9 @@ results = model.predict(
 - Bounding boxes with confidence scores.
 - Saved results in `runs/detect/predict/`.
 
-## 🧩 Tiling Strategy Impact
+## Tiling Strategy Impact
 
-| Feature | ❌ Before Tiling | ✅ After Tiling |
+| Feature | Before Tiling | After Tiling |
 | :--- | :--- | :--- |
 | **Object Size** | Objects are extremely small | Objects become larger and clearer |
 | **Detection Quality** | Poor detection of small tanks | Improved recall and detection accuracy |
@@ -91,12 +91,12 @@ results = model.predict(
 > - Improved feature visibility
 > - Enabled robust detection of small objects
 
-### 🏁 Final Impact
+### Final Impact
 This project demonstrates a production-ready approach to solving small object detection in satellite imagery using tiling, transfer learning, and optimized inference strategies.
 
 
 
-## 🧠 Assumptions & Challenges
+## Assumptions & Challenges
 
 ### Assumptions
 - **Static Background**: High-resolution imagery is assumed to be orthorectified.
@@ -106,7 +106,7 @@ This project demonstrates a production-ready approach to solving small object de
 - **Pixel Scale**: Small tanks appear as tiny pixel clusters in global views. Tiling was **mandatory** rather than optional to preserve the feature resolution (GSD).
 - **Class Imbalance**: Large swathes of satellite images are empty. The pipeline filters these to ensure the gradient updates are meaningful.
 
-## 🛠️ Potential Improvements
+## Potential Improvements
 
 - **SAHI Integration**: Implement *Slicing Aided Hyper Inference* (SAHI) during deployment to run inference on overlapping tiles and merge results, which typically boosts small object detection.
 - **Model Scaling**: Upgrade to YOLOv8m or YOLOv8l for higher feature extraction depth if computational budget allows.
