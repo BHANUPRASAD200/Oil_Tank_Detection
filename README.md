@@ -1,173 +1,142 @@
 # Oil Storage Tank Detection
 
-A professional machine learning pipeline for detecting oil storage tanks in high-resolution satellite imagery using YOLOv8. This project implements a full end-to-end workflow including data preprocessing, intelligent tiling, model training, and performance evaluation.
+A professional computer vision and remote sensing pipeline for detecting oil storage tanks in high-resolution satellite imagery using **YOLO11s (Ultralytics)** and **SAHI (Slicing Aided Hyper Inference)**. This project implements a full end-to-end workflow including boundary-preserving tiling, balanced background sampling, model training, error analysis, and full-scene sliced inference.
 
 ## Workflow Overview
 
 The project follows a modular pipeline designed for high-resolution geospatial data:
 
-1.  **Data Ingestion**: Processes the Airbus Oil Storage Detection dataset, consisting of high-resolution JPEG images and CSV annotations.
-2.  **Preprocessing & Tiling**: 
-    - **Tiling Strategy**: Satellite images are often too large (several thousand pixels) to be fed directly into a CNN without significant detail loss. We implement a tiling strategy using a **640x640 window** with a **512-pixel stride** (ensuring overlap to avoid cutting objects at edges).
-    - **Filtering**: Only tiles containing oil tanks are retained for training to maintain a balanced dataset and reduce computational overhead.
-    - **Normalization**: Conversion of bounding box coordinates from pixel-absolute to YOLO-normalized format.
+1.  **Data Ingestion**: Processes the Airbus Oil Storage Detection dataset, consisting of high-resolution satellite JPEG images and bounding box annotations.
+2.  **Preprocessing & Intelligent Tiling**: 
+    - **Tiling Strategy**: Satellite images are several thousand pixels in dimension. We implement a tiling strategy using a **640×640 window** with a **512-pixel stride**.
+    - **Boundary Preservation (`get_steps`)**: Explicitly pins the outer step to image edges, ensuring boundary tanks and pixels are never truncated.
+    - **Negative Background Inclusion**: Includes ~10% empty background tiles (roads, industrial roofs, water bodies) to suppress real-world false positives.
+    - **YOLO Normalization**: Conversion of coordinates from pixel-absolute to normalized `(x_center, y_center, w, h)`.
 3.  **Model Training**:
-    - **Architecture**: YOLOv8s (Small) — selected for its optimal balance between inference speed and detection accuracy.
-    - **Hyperparameters**: 100 epochs, image size 640, AdamW optimizer, and mosaic augmentation.
-    - **Augmentation**: Applied 90-degree rotations, horizontal/vertical flips, and HSV adjustments to increase model robustness against varying satellite orientations and lighting conditions.
+    - **Architecture**: **YOLO11s (Small)** — chosen for its optimal balance of parameters (9.4M) and feature extraction capacity (C3k2 blocks and SPPF spatial attention) without overfitting on aerial datasets.
+    - **Hyperparameters**: 100 epochs, image size 640, AdamW optimizer, cosine learning rate scheduler (`cos_lr=True`), and un-augmented fine-tuning (`close_mosaic=10`).
+    - **Augmentation**: Applied 90-degree rotations, horizontal/vertical flips, and HSV adjustments to handle varying satellite orientations and lighting.
+4.  **Full-Scene Inference with SAHI**:
+    - Slices high-resolution satellite scenes dynamically into overlapping tiles at inference time.
+    - Re-maps tile bounding boxes to global coordinates and applies **Global Non-Maximum Suppression (NMS)** to merge seam duplicates.
 
 ## 📁 Project Structure
 
 ```text
 oil_tank_project/
-├── oil-storage-detection.ipynb  # Primary exploration and training notebook
-├── tiled_dataset.yaml           # YOLO configuration for the processed data
-├── tiled/                       # Generated dataset (images & labels)
+├── oil-storage-detection.ipynb           # Complete executed YOLO11s training & evaluation notebook
+├── train_yolo11s.py                      # Standalone CLI training & inference script
+├── requirements.txt                      # Project dependencies (ultralytics, sahi, etc.)
+├── tiled_dataset.yaml                    # YOLO configuration for the processed data
+├── weights/                              # Trained YOLO11s weights
+│   └── best.pt                           # 18.3 MB trained model checkpoint
+├── tiled/                                # Generated tiled dataset (images & labels)
 │   ├── images/ (train/val)
 │   └── labels/ (train/val)
-└── runs/detect/train/           # Training artifacts and metrics
+└── runs/detect/yolo11s_oil_tank/         # Full YOLO11s training artifacts and metrics
     ├── weights/ (best.pt, last.pt)
-    ├── results.csv              # Raw metrics per epoch
-    ├── results.png              # Learning curves
-    └── confusion_matrix.png     # Error analysis
-```
-
-## Implementation Pipeline
-
-### 1. Environment Setup
-Installed required libraries:
-- NumPy, Pandas → data handling  
-- OpenCV → image processing  
-- Ultralytics YOLOv8 → object detection  
-
----
-
-### 2. Dataset Loading
-Used Airbus Oil Storage Detection dataset from Kaggle:
-[Airbus Oil Storage Detection Dataset](https://www.kaggle.com/datasets/airbusgeo/airbus-oil-storage-detection-dataset)
-
----
-
-### 3. Annotation Parsing
-Bounding boxes were provided in `(x_min, y_min, x_max, y_max)` format and converted into numerical values.
-
----
-
-### 4. YOLO Format Conversion
-Converted annotations into YOLO format:
-`(class_id, x_center, y_center, width, height)`
-
-All values normalized with respect to image dimensions.
-
----
-
-### 5. Dataset Organization
-Created directory structure: 
-```text
-data/
-├── images/train
-├── images/val
-├── labels/train
-├── labels/val
+    ├── results.csv                       # Epoch metrics
+    ├── results.png                       # Training curves
+    ├── BoxPR_curve.png                   # Precision-Recall curve
+    ├── BoxF1_curve.png                   # F1 vs Confidence curve
+    ├── confusion_matrix_normalized.png  # Error analysis
+    ├── val_batch0_labels.jpg             # Ground truth batch
+    └── val_batch0_pred.jpg               # Model prediction batch
 ```
 
 ---
 
-### 6. Tiling Strategy
-Implemented tiling to handle large images:
-- Tile size: 640×640  
-- Overlap to avoid object truncation  
-- Removed empty tiles  
+## Model Performance (YOLO11s)
 
----
+Trained for 100 epochs with cosine decay and boundary-preserved tiling. The model achieved high precision, recall, and localization quality across the validation set:
 
-### 7. Tile Generation
-Generated tiles and adjusted bounding boxes relative to each tile.
-
----
-
-### 8. Dataset Configuration
-Created YOLO config file:
-
-```yaml
-path: tiled
-train: images/train
-val: images/val
-
-names:
-  0: oil_tank
-```
-
----
-
-### 9. Model Training
-Trained YOLOv8 model using transfer learning:
-
-```python
-model.train(
-    data="tiled_dataset.yaml",
-    epochs=100,
-    imgsz=640,
-    batch=16,
-    degrees=90,
-    flipud=0.5,
-    fliplr=0.5
-)
-```
-
----
-
-### 10. Evaluation
-Evaluated using:
-- mAP@50
-- mAP@50-95
-- Precision & Recall
-
----
-
-### 11. Key Observations
-- Tiling significantly improved small object detection.
-- Dense regions caused overlapping predictions.
-- Adjusted confidence and NMS to improve results.
-
----
-
-
-
-## Model Performance
-
-The model achieved high precision and recall, demonstrating robust detection capabilities across the validation set.
-
-| Metric | Value |
-| :--- | :--- |
-| **mAP@50** | **0.964** |
-| **mAP@50-95** | **0.641** |
-| **Precision** | **0.917** |
-| **Recall** | **0.903** |
+| Metric | Value | Description |
+| :--- | :--- | :--- |
+| **Precision (P)** | **0.918 (91.8%)** | Minimal false positive detections |
+| **Recall (R)** | **0.900 (90.0%)** | 90% of all oil tanks detected |
+| **F1-Score** | **0.909 (90.9%)** | Harmonic balance between Precision & Recall |
+| **mAP@50** | **0.950 (95.0%)** | Mean Average Precision at IoU=0.50 |
+| **mAP@50-95** | **0.645 (64.5%)** | Primary benchmark for strict localization accuracy |
 
 ### Training Results
-![Training Results](runs/detect/train/results.png)
+![Training Results](runs/detect/yolo11s_oil_tank/results.png)
 *Figure 1: Training and Validation Loss/Metric curves over 100 epochs.*
 
 ### Error Analysis & Precision-Recall
-![Confusion Matrix](runs/detect/train/confusion_matrix_normalized.png)
-*Figure 2: Normalized Confusion Matrix showing high accuracy for the 'oil_tank' class.*
+![Normalized Confusion Matrix](runs/detect/yolo11s_oil_tank/confusion_matrix_normalized.png)
+*Figure 2: Normalized Confusion Matrix showing 90% true positive rate for the 'oil_tank' class.*
 
-![PR Curve](runs/detect/train/BoxPR_curve.png)
-*Figure 3: Precision-Recall Curve demonstrating the trade-off at various thresholds.*
+![PR Curve](runs/detect/yolo11s_oil_tank/BoxPR_curve.png)
+*Figure 3: Precision-Recall Curve demonstrating optimal performance across all confidence thresholds.*
+
+---
+
+## Full-Image Sliced Inference (SAHI) Benchmark
+
+Standard downscaling turns small storage tanks in massive satellite scenes into unrecognizable blur. SAHI sliced inference preserves the native resolution and uses global NMS to achieve dramatic gains:
+
+```text
+=======================================================
+🛰️ BENCHMARK: Unsliced vs. Sliced Inference (YOLO11s)
+Image: 52a4f0b4-bd4c-40cc-a54d-9528213b28be.jpg
+Standard Unsliced YOLO11s (downscaled to 640x640): 16 tanks
+SAHI Sliced Inference (Tiled + Global NMS):        44 tanks
+Detection Gain: +28 tanks (+175.0%)
+=======================================================
+```
+
+| Method | Resolution Treated | Tanks Detected | Small Object Recovery |
+| :--- | :--- | :--- | :--- |
+| **Standard YOLO11s** | Downscaled to 640×640 | 16 tanks | Heavy misses due to pixel downsampling |
+| **SAHI Sliced YOLO11s** | Full 25 slices @ 640×640 | **44 tanks** | **+175.0% Gain (+28 tanks recovered)** |
+
+---
 
 ## Inference (How to Use the Model)
+
+### 1. Full Satellite Scene Inference with SAHI (Recommended)
+
+```python
+from sahi import AutoDetectionModel
+from sahi.predict import get_sliced_prediction
+
+# Load trained YOLO11s weights
+detection_model = AutoDetectionModel.from_pretrained(
+    model_type='yolov8',
+    model_path='runs/detect/yolo11s_oil_tank/weights/best.pt',
+    confidence_threshold=0.5,
+    device='cuda:0'
+)
+
+# Run sliced prediction across large satellite scene
+result = get_sliced_prediction(
+    "path_to_full_satellite_image.jpg",
+    detection_model,
+    slice_height=640,
+    slice_width=640,
+    overlap_height_ratio=0.25,
+    overlap_width_ratio=0.25,
+    postprocess_type="NMS",
+    postprocess_match_threshold=0.3
+)
+
+# Export annotated full-scene image
+result.export_visuals(export_dir="runs/detect/sahi_output")
+print(f"Detected {len(result.object_prediction_list)} tanks across full scene.")
+```
+
+### 2. Standard Tile-Level Inference
 
 ```python
 from ultralytics import YOLO
 
 # Load trained model
-model = YOLO("runs/detect/train/weights/best.pt")
+model = YOLO("runs/detect/yolo11s_oil_tank/weights/best.pt")
 
-# Run inference
+# Run inference on cropped tiles
 results = model.predict(
     source="path_to_image_or_folder",
-    conf=0.6,
+    conf=0.55,
     iou=0.3,
     save=True
 )
@@ -175,7 +144,7 @@ results = model.predict(
 
 **Output**:
 - Bounding boxes with confidence scores.
-- Saved results in `runs/detect/predict/`.
+- Saved results in `runs/detect/predict/` and `runs/detect/sahi_output/`.
 
 ## Tiling Strategy Impact
 
