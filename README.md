@@ -171,22 +171,45 @@ This project demonstrates a production-ready approach to solving small object de
 
 
 
-## Assumptions & Challenges
+## Assumptions, Challenges & Implemented Solutions
 
 ### Assumptions
-- **Static Background**: High-resolution imagery is assumed to be orthorectified.
-- **Single Class**: The current implementation focuses exclusively on `oil_storage_tank`, treating other industrial structures as background.
+- **Static Background**: High-resolution imagery is assumed to be orthorectified with top-down (nadir or near-nadir) viewing angles.
+- **Single Class**: The current implementation focuses exclusively on `oil_storage_tank`, treating neighboring industrial buildings, roads, and piping as background.
+- **Uniform GSD**: Spatial ground sample distance is assumed to be relatively consistent across the Airbus dataset tiles (~0.5m/pixel).
 
-### Challenges
-- **Pixel Scale**: Small tanks appear as tiny pixel clusters in global views. Tiling was **mandatory** rather than optional to preserve the feature resolution (GSD).
-- **Class Imbalance**: Large swathes of satellite images are empty. The pipeline filters these to ensure the gradient updates are meaningful.
+### Challenges & Engineered Solutions
+- **Pixel Scale (Small Object Resolution)**: 
+  - *Challenge*: In raw 3000×3000+ satellite scenes, tanks occupy only a tiny cluster of pixels. Standard downscaling obliterates their visual features.
+  - *Solution*: Implemented a 640×640 sliding-window tiling strategy with 512-pixel stride to preserve native resolution.
+- **Tile Edge Truncation (Boundary Loss)**: 
+  - *Challenge*: Stride loops that do not divide image dimensions evenly drop edge pixels and bisect tanks along tile seams.
+  - *Solution*: Developed `get_steps(dim, tile_size, stride)` which pins the final tile to the outer image boundary, eliminating clipped border loss.
+- **False Positive Trap (Negative Sampling)**: 
+  - *Challenge*: Training only on positive tiles (tiles containing tanks) leaves the model blind to empty industrial structures, causing excessive false alarms on real satellite scenes.
+  - *Solution*: Integrated balanced **10% negative background tile sampling** with empty label files, training the model on what is *not* an oil tank.
+- **Full-Scene Seam Stitching**: 
+  - *Challenge*: Testing only on cropped tiles fails to evaluate full real-world satellite images.
+  - *Solution*: Integrated **SAHI (Slicing Aided Hyper Inference)** with Global Non-Maximum Suppression (NMS), achieving a **+175.0% small-object detection gain** across complete scenes.
 
-## Potential Improvements
+---
 
-- **SAHI Integration**: Implement *Slicing Aided Hyper Inference* (SAHI) during deployment to run inference on overlapping tiles and merge results, which typically boosts small object detection.
-- **Model Scaling**: Upgrade to YOLOv8m or YOLOv8l for higher feature extraction depth if computational budget allows.
-- **Multi-Spectral Data**: Incorporate Near-Infrared (NIR) bands if available, as oil tanks often have distinct thermal/reflective signatures.
-- **Temporal Analysis**: Apply the model across time-series data to track volume changes or industrial activity levels.
+## Roadmap & Potential Future Improvements
+
+With tiling, YOLO11s, and SAHI fully implemented, the pipeline can be extended further:
+
+1. **Oriented Bounding Boxes (YOLO11-OBB)**:
+   - Because oil storage tanks are circular cylinders in dense grid formations, axis-aligned boxes often overlap. Upgrading to YOLO11-OBB or instance segmentation (`yolo11s-seg`) provides non-overlapping rotated boundaries.
+2. **Automated Physical Diameter & Capacity Estimation**:
+   - Convert bounding box pixel dimensions into meters using the satellite sensor's Ground Sampling Distance (GSD):
+     $$\text{Diameter (m)} = \text{BBox Width (px)} \times \text{GSD (m/px)}$$
+   - Estimate tank storage capacity based on cylinder geometry ($V = \pi r^2 h$).
+3. **Floating-Roof Liquid Fill-Level Tracking**:
+   - In floating-roof tanks, the height of the oil level alters the crescent-shaped shadow cast by the inner rim. Measuring this shadow over time provides automated oil inventory volume intelligence.
+4. **Multi-Spectral & Thermal Data (NIR/SWIR)**:
+   - Incorporate Near-Infrared (NIR) or Short-Wave Infrared (SWIR) bands to detect thermal anomalies, hydrocarbon vapor signatures, or tank material variations.
+5. **Temporal Activity & Throughput Monitoring**:
+   - Run the SAHI pipeline across time-series satellite passes over refineries and ports to track logistics throughput, construction progress, or storage utilization.
 
 ## Acknowledgment
 
